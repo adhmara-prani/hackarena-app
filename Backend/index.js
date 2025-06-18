@@ -1,12 +1,15 @@
-import express from "express";
-import dataRoutes from "./routes/data.routes.js";
+import {app} from './app.js'
 import dotenv from "dotenv"
-const app = express();
+import connectDB from "./db/index.js";
+
 dotenv.config();
-app.use(express.json());
-app.use("/api/data", dataRoutes);
 
-
-app.listen(5000, () => {
-  console.log("Server is running at port 5000");
-});
+connectDB()
+  .then(() => {
+    app.listen(process.env.PORT || 5000, () => {
+      console.log(`Server started on port ${process.env.PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.log("MONGODB connection error: " + err);
+  });
