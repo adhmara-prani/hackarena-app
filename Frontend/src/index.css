@@ -1,2 +1,13 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: local('OpenDyslexic'),
+       url('./assets/fonts/OpenDyslexic-Regular.woff2') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+body {
+    font-family: 'OpenDyslexic', sans-serif;
+}
