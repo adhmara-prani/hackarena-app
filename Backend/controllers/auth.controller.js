@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import User from "../models/user.models.js";
+import generateAndSetCookie from "../utils/generateToken.js";
 
 export const signup = async (req, res) => {
   try {
@@ -28,6 +29,8 @@ export const signup = async (req, res) => {
     });
 
     if (newUser) {
+      generateAndSetCookie(newUser._id, res);
+
       await newUser.save();
       res.status(201).json({
         _id: newUser._id,
@@ -55,7 +58,9 @@ export const login = async (req, res) => {
     );
 
     if (!user || !isPasswordCorrect)
-      return res.status(400).json({ error: "Incorrect username or password!" });
+      return res.status(400).json({ error: "Incorrect emailId or password!" });
+
+    generateAndSetCookie(user._id, res);
 
     res.status(200).json({
       _id: user._id,
@@ -65,5 +70,15 @@ export const login = async (req, res) => {
   } catch (error) {
     console.log("Error in the login controller!", error.message);
     res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+export const logout = async (req, res) => {
+  try {
+    res.cookie("jwt", "", { maxAge: 0 });
+    res.status(200).json({ message: "Logged out successfully" });
+  } catch (error) {
+    console.log("Error in the logout controller!", error.message);
+    res.status(500).json({ message: "Internal Server Error!" });
   }
 };
