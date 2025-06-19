@@ -27,8 +27,9 @@ const Auth = () => {
     try {
       if (isRegister) {
         const response = await axios.post(
-          `${import.meta.env.VITE_BASE_URL}/users/register`,
-          formData
+          `${import.meta.env.VITE_BASE_URL}/api/users/register`,
+          formData,
+          { withCredentials: true }
         );
         setUser({
           fullName: response.data.fullName,
@@ -37,8 +38,9 @@ const Auth = () => {
         navigate("survey", { state: formData });
       } else {
         const response = await axios.post(
-          `${import.meta.env.VITE_BASE_URL}/users/login`,
-          formData
+          `${import.meta.env.VITE_BASE_URL}/api/users/login`,
+          formData,
+          { withCredentials: true }
         );
         setUser({
           fullName: response.data.fullName,
