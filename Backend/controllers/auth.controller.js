@@ -3,13 +3,13 @@ import User from "../models/user.models.js";
 
 export const signup = async (req, res) => {
   try {
-    const { fullName, emailId, password } = req.body;
+    const { fullName, email, password } = req.body;
 
-    if (!fullName || !emailId || !password) {
+    if (!fullName || !email || !password) {
       return res.status(400).json({ error: "Please fill in all the fields!" });
     }
 
-    const user = await User.findOne({ emailId });
+    const user = await User.findOne({ email });
 
     if (user) {
       return res
@@ -23,7 +23,7 @@ export const signup = async (req, res) => {
 
     const newUser = new User({
       fullName,
-      emailId,
+      email,
       password: hashedPassword,
     });
 
@@ -47,8 +47,8 @@ export const signup = async (req, res) => {
 
 export const login = async (req, res) => {
   try {
-    const { emailId, password } = req.body;
-    const user = await User.findOne({ emailId });
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
     const isPasswordCorrect = await bcrypt.compare(
       password,
       user?.password || ""
@@ -60,7 +60,7 @@ export const login = async (req, res) => {
     res.status(200).json({
       _id: user._id,
       fullName: user.fullName,
-      emailId: user.emailId,
+      email: user.email,
     });
   } catch (error) {
     console.log("Error in the login controller!", error.message);
