@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { UserContext } from "../context/UserContext";
 
 const surveyQuestions = [
   {
@@ -37,6 +38,8 @@ const SurveyPage = () => {
   const [answers, setAnswers] = useState(Array(surveyQuestions.length).fill(""));
   const location = useLocation();
   const navigate = useNavigate();
+  const{user}=useContext(UserContext);
+  console.log(user)
 
   const handleSelect = (questionIndex, option) => {
     const updated = [...answers];

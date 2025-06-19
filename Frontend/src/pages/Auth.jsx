@@ -1,16 +1,18 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { UserContext } from "../context/UserContext";
 
 const Auth = () => {
   const [isRegister, setIsRegister] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
-    password: ""
+    password: "",
   });
   const navigate = useNavigate();
-
+  const { setUser } = useContext(UserContext);
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -20,12 +22,31 @@ const Auth = () => {
     setIsRegister(!isRegister);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isRegister) {
-      navigate("survey", { state: formData });
-    } else {
-      console.log(formData);
+    try {
+      if (isRegister) {
+        const response = await axios.post(
+          `${import.meta.env.VITE_BASE_URL}/users/register`,
+          formData
+        );
+        setUser({
+          fullName: response.data.fullName,
+          email: response.data.email,
+        });
+        navigate("survey", { state: formData });
+      } else {
+        const response = await axios.post(
+          `${import.meta.env.VITE_BASE_URL}/users/login`,
+          formData
+        );
+        setUser({
+          fullName: response.data.fullName,
+          email: response.data.email,
+        });
+      }
+    } catch (error) {
+      console.log(error);
     }
   };
 
