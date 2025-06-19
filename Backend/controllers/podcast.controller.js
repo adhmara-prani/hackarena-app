@@ -10,7 +10,7 @@ const generatePodcastScript = async (req, res, next) => {
   const { prompt, pdfData } = req.body;
 
   if (!prompt || !pdfData) {
-    return res.status(400).json({ error: "Prompt or PDF Content are required" });
+    return res.status(400).json({ error: "Prompt and PDF Content are required" });
   }
 
   try {
@@ -31,37 +31,18 @@ Make it friendly, fun, and informative. Avoid technical jargon. No headings or e
     );
 
     const response = await result.response;
-    const scriptText = response.text();
+    const text = response.text();
 
-    
-    // Step 2: Join into paragraph
-    const paragraph = scriptText
-
-    // Step 3: Send to Murf using axios
-    const murfResponse = await axios.post(
-      "https://api.murf.ai/v1/speech/generate",
-      {
-        text: paragraph,
-        voiceId: "en-US-natalie",
-      },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          "api-key": process.env.murf_api_key,
-        },
-      }
-    );
-
-    const { audioFile } = murfResponse.data;
-
-    if (!audioFile) {
-      return res.status(500).json({ error: "Murf response did not include audioFile." });
+    // Try parsing the text directly as JSON
+    let scriptArray;
+    try {
+      scriptArray = JSON.parse(text);
+    } catch (jsonError) {
+      console.error("Failed to parse Gemini output as JSON:", jsonError);
+      return res.status(500).json({ error: "Gemini output was not valid JSON." });
     }
 
-    return res.json({
-     
-      audioUrl: audioFile,
-    });
+    res.json({ script: scriptArray });
 
   } catch (error) {
     console.error("Error:", error.response?.data || error.message);

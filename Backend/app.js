@@ -21,7 +21,4 @@ app.use('/api/data',dataRouter)
 //user routes
 app.use('/api/users',userRouter)
 
-
-
 export { app }
-

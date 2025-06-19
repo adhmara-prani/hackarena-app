@@ -1,42 +1,47 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { UserContext } from "../context/UserContext";
 
 const surveyQuestions = [
   {
     question: "Do you have ADHD or Dyslexia?",
-    options: ["ADHD", "Dyslexia", "Both", "None"]
+    options: ["ADHD", "Dyslexia", "Both", "None"],
   },
   {
     question: "What is your age group?",
-    options: ["<13", "13-18", "19-30", ">30"]
+    options: ["<13", "13-18", "19-30", ">30"],
   },
   {
     question: "How long can you stay focused on a single task?",
-    options: ["15-20 mins", "20-30 mins", "30-45 mins", ">45 mins"]
+    options: ["15-20 mins", "20-30 mins", "30-45 mins", ">45 mins"],
   },
   {
     question: "What are your biggest distractions?",
-    options: ["Noise", "Social Media", "Boredom", "Physical Restlessness"]
+    options: ["Noise", "Social Media", "Boredom", "Physical Restlessness"],
   },
   {
     question: "What time of day are you most productive?",
-    options: ["Morning", "Evening", "Night", "Varies"]
+    options: ["Morning", "Evening", "Night", "Varies"],
   },
   {
     question: "How many breaks do you take?",
-    options: ["None", "1-2", "3-5", ">5"]
+    options: ["None", "1-2", "3-5", ">5"],
   },
   {
     question: "How long are your breaks?",
-    options: ["<5 mins", "5-10 mins", "10-20 mins", ">20 mins"]
-  }
+    options: ["<5 mins", "5-10 mins", "10-20 mins", ">20 mins"],
+  },
 ];
 
 const SurveyPage = () => {
-  const [answers, setAnswers] = useState(Array(surveyQuestions.length).fill(""));
+  const [answers, setAnswers] = useState(
+    Array(surveyQuestions.length).fill("")
+  );
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useContext(UserContext);
+  console.log(user);
 
   const handleSelect = (questionIndex, option) => {
     const updated = [...answers];

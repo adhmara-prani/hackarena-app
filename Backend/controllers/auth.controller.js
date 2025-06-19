@@ -1,15 +1,16 @@
 import bcrypt from "bcryptjs";
-import User from "../models/user.models.js";
+import { User } from "../models/user.models.js";
+import generateAndSetCookie from "../utils/generateToken.js";
 
 export const signup = async (req, res) => {
   try {
-    const { fullName, emailId, password } = req.body;
+    const { fullName, email, password } = req.body;
 
-    if (!fullName || !emailId || !password) {
+    if (!fullName || !email || !password) {
       return res.status(400).json({ error: "Please fill in all the fields!" });
     }
 
-    const user = await User.findOne({ emailId });
+    const user = await User.findOne({ email });
 
     if (user) {
       return res
@@ -23,16 +24,18 @@ export const signup = async (req, res) => {
 
     const newUser = new User({
       fullName,
-      emailId,
+      email,
       password: hashedPassword,
     });
 
     if (newUser) {
+      generateAndSetCookie(newUser._id, res);
+
       await newUser.save();
       res.status(201).json({
         _id: newUser._id,
         fullName: newUser.fullName,
-        emailId: newUser.emailId,
+        email: newUser.email,
       });
     } else {
       return res
@@ -47,23 +50,55 @@ export const signup = async (req, res) => {
 
 export const login = async (req, res) => {
   try {
-    const { emailId, password } = req.body;
-    const user = await User.findOne({ emailId });
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
     const isPasswordCorrect = await bcrypt.compare(
       password,
       user?.password || ""
     );
 
     if (!user || !isPasswordCorrect)
-      return res.status(400).json({ error: "Incorrect username or password!" });
+      return res.status(400).json({ error: "Incorrect emailId or password!" });
+
+    generateAndSetCookie(user._id, res);
 
     res.status(200).json({
       _id: user._id,
       fullName: user.fullName,
-      emailId: user.emailId,
+      email: user.email,
     });
   } catch (error) {
     console.log("Error in the login controller!", error.message);
     res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+export const logout = async (req, res) => {
+  try {
+    res.cookie("jwt", "", { maxAge: 0 });
+    res.status(200).json({ message: "Logged out successfully" });
+  } catch (error) {
+    console.log("Error in the logout controller!", error.message);
+    res.status(500).json({ message: "Internal Server Error!" });
+  }
+};
+
+export const sendSurveyData = async (req, res) => {
+  try {
+    const { surveyData } = req.body;
+    console.log(surveyData);
+    const userId = req.userID;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { surveyData: surveyData },
+      { new: true }
+    );
+    console.log(user);
+
+    res.status(200).json({ message: "Successful" });
+  } catch (error) {
+    console.log("Error in the survey data controller!", error.message);
+    res.status(500).json({ message: "Internal Server Error!" });
   }
 };
