@@ -82,3 +82,23 @@ export const logout = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error!" });
   }
 };
+
+export const sendSurveyData = async (req, res) => {
+  try {
+    const { surveyData } = req.body;
+    console.log(surveyData);
+    const userId = req.userID;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { surveyData: surveyData },
+      { new: true }
+    );
+    console.log(user);
+
+    res.status(200).json({ message: "Successful" });
+  } catch (error) {
+    console.log("Error in the survey data controller!", error.message);
+    res.status(500).json({ message: "Internal Server Error!" });
+  }
+};

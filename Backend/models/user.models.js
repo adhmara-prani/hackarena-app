@@ -16,7 +16,8 @@ const UserSchema = new mongoose.Schema(
       required: true,
     },
     surveyData: [{
-      type: String,
+      question: String,
+      answer: String
     }]
   },
   { timestamps: true }
