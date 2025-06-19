@@ -4,10 +4,10 @@ import jwt from "jsonwebtoken";
 export const verifyJWT = async (req, res, next) => {
   try {
     const token =
-      req.cookies?.token || req.header("Authorization")?.replace("Bearer ", "");
+      req.cookies?.jwt || req.header("Authorization")?.replace("Bearer ", "");
 
     if (!token) {
-      return res.status(401).json({ message: "Unauthorized" });
+      return res.status(401).json({ message: "Token not found" });
     }
 
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
