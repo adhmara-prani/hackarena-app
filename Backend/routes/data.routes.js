@@ -1,10 +1,12 @@
 import express from "express";
-import generatePodcastScript from "../controllers/podcast.controller.js";
+import textToSpeech from "../controllers/summarized.controller.js";
+import generatePodcastDialog from "../controllers/podcast.controller.js";
 
 const router = express.Router();
 
  // router.get("/prompt", promptController);
-router.post("/podcast",generatePodcastScript );
+router.post("/textToSpeech",textToSpeech );
+router.post("/podcast" ,generatePodcastDialog)
 
   //router.post("/quiz", quiz);
 
