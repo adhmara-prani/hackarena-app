@@ -4,6 +4,7 @@ import LandingPage from "./pages/LandingPage";
 import { Routes, Route } from "react-router-dom";
 import Auth from "./pages/Auth";
 import SurveyPage from "./pages/SurveyPage";
+import Test from "./pages/Test";
 
 function App() {
   const [count, setCount] = useState(0);
@@ -14,6 +15,7 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/auth/survey" element={<SurveyPage />} />
+        <Route path="/test" element={<Test/>}/>
       </Routes>
     </>
   );
