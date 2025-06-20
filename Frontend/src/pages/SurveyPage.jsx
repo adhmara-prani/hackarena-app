@@ -1,6 +1,7 @@
 import React, { useContext, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import axios from "axios";
 import { UserContext } from "../context/UserContext";
 
 const surveyQuestions = [
@@ -49,11 +50,24 @@ const SurveyPage = () => {
     setAnswers(updated);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    const surveyData = surveyQuestions.map((q, index) => ({
+      question: q.question,
+      answer: answers[index],
+    }));
+
     console.log("User Details:", location.state);
-    console.log("Survey Answers:", answers);
-    // Here you can submit everything to the backend
-    navigate("/dashboard");
+    console.log("Survey Answers:", surveyData);
+
+    try {
+      await axios.post("http://localhost:5000/api/users/survey", {
+        surveyData: surveyData,
+      },{withCredentials:true});
+
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Survey submission failed:", error);
+    }
   };
 
   return (
@@ -70,7 +84,7 @@ const SurveyPage = () => {
 
         <div className="space-y-8">
           {surveyQuestions.map((item, index) => (
-            <div key={index} className="">
+            <div key={index}>
               <p className="text-lg font-semibold mb-3 text-gray-800">
                 {index + 1}. {item.question}
               </p>
