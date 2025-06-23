@@ -11,7 +11,7 @@ const router = express.Router();
 
 // router.get("/prompt", promptController);
 router.post("/textToSpeech", textToSpeech);
-router.post("/podcast", generatePodcastDialog);
+router.post("/podcast",upload.single("file"), parsePdf, generatePodcastDialog);
 
 router.post("/quiz", upload.single("file"), parsePdf, quiz);
 

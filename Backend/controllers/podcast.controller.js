@@ -32,6 +32,7 @@ ${prompt ? `Topic: ${prompt}` : ""}
 ${pdfData ? `Use this background content as reference:\n${pdfData}` : ""}
 
 Make the conversation friendly, informative, and informal. Alternate turns. Keep it to 6–10 exchanges total (3–5 for each speaker). 
+It should teach and cover everything in the text.
 
 Only output plain dialog in the format:
 Alex: [text]
@@ -41,7 +42,7 @@ No extra narration, no headers, no markdown, no bullet points.
     `;
 
     const result = await model.generateContent(inputText);
-    const response = await result.response;
+    const response = result.response;
     const text = response.text();
 
     // Parse dialog lines

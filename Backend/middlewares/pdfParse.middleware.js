@@ -13,14 +13,9 @@ const parsePdf = async (req, res, next) => {
     const data = await pdfParse(dataBuffer);
 
     // Saving parsed text to a file in same directory
-    const parsedTextPath = path.join(
-      path.dirname(filePath),
-      path.basename(filePath, path.extname(filePath)) + ".txt"
-    );
-    fs.writeFileSync(parsedTextPath, data.text, "utf8");
 
     console.log("PDF converted successfully!");
-    req.pdfText = data.text;
+    req.body.pdfData = data.text;
 
     next();
   } catch (err) {
