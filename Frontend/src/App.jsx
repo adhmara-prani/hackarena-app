@@ -6,7 +6,6 @@ import Auth from "./pages/Auth";
 import SurveyPage from "./pages/SurveyPage";
 import Test from "./pages/Test";
 import Dashboard from "./pages/Dashboard.jsx";
-import FaceDetectionComponent from "./pages/FaceDetection.jsx";
 
 function App() {
   const [count, setCount] = useState(0);
@@ -19,7 +18,6 @@ function App() {
         <Route path="/auth/survey" element={<SurveyPage />} />
         <Route path="/test" element={<Test />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/webcam" element={<FaceDetectionComponent />}></Route>
       </Routes>
     </>
   );
