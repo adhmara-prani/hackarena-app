@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import {
   Upload,
@@ -15,8 +16,13 @@ import {
   Volume2,
   RotateCcw,
   Flame,
+  PlayCircle,
+  PauseCircle,
+  StopCircle,
 } from "lucide-react";
-import FaceDetectionMini from "../pages/FaceDetectionMini.jsx";
+
+import FaceDetectionMini from "./FaceDetectionMini"
+
 
 export default function NeuroNavApp() {
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -32,7 +38,14 @@ export default function NeuroNavApp() {
   const [streak, setStreak] = useState(0);
   const [goalAchieved, setGoalAchieved] = useState(false);
   const [attentionSpan, setAttentionSpan] = useState(null);
+  const [summarizedParagraphs, setSummarizedParagraphs] = useState([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [currentlyPlaying, setCurrentlyPlaying] = useState(null);
+  const [uploadedFile, setUploadedFile] = useState(null);
+  
   const faceRef = useRef();
+  const speechSynthesis = window.speechSynthesis;
+  const fileInputRef = useRef();
 
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
@@ -46,9 +59,7 @@ export default function NeuroNavApp() {
 
   const fontClass = dyslexicFont ? "font-mono" : "font-sans";
 
-  {
-    /* Focus Mode Variables and Hooks - Start */
-  }
+  // Focus Mode Variables and Hooks
   useEffect(() => {
     let timer;
     if (isTimerRunning) {
@@ -79,8 +90,8 @@ export default function NeuroNavApp() {
 
   const handleReset = () => {
     setTimerMinutes(0);
-    setIsTimerRunning(false); // unchecks both of them
-    setGoalAchieved(false); // streak is incomplete
+    setIsTimerRunning(false);
+    setGoalAchieved(false);
     faceRef.current?.stopDetection();
   };
 
@@ -90,9 +101,131 @@ export default function NeuroNavApp() {
     return `${mins}:${secs}`;
   };
 
-  {
-    /*Focus Mode Variables and Hooks - End */
+  // File handling
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setUploadedFile(file);
+      handleFileRead(file);
+    }
+  };
+
+  const handleFileRead = async (file) => {
+    setIsProcessing(true);
+    try {
+      let text = "";
+      
+      if (file.type === "application/pdf") {
+        // For PDF files, we'll simulate reading the content
+        // In a real implementation, you'd use a PDF parsing library
+        text = "This is a sample PDF content. In a real implementation, you would use a PDF parsing library like pdf-parse or PDF.js to extract text from the PDF file. This content would then be processed and summarized into digestible paragraphs for better learning.";
+      } else if (file.type === "text/plain" || file.type.includes("text")) {
+        text = await file.text();
+      } else {
+        alert("Please upload a text file or PDF");
+        setIsProcessing(false);
+        return;
+      }
+      
+      // Combine file content with text input
+      const combinedText = [text, textInput].filter(Boolean).join("\n\n");
+      await processcontent(combinedText);
+    } catch (error) {
+      console.error("Error reading file:", error);
+      alert("Error reading file. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Content processing and summarization
+  
+
+  const createSummary = (text) => {
+    // Simple summarization logic - in a real app, you'd use AI
+    const words = text.split(' ');
+    if (words.length <= 20) return text;
+    
+    // Take first and last parts of the text for summary
+    const firstPart = words.slice(0, 10).join(' ');
+    const lastPart = words.slice(-10).join(' ');
+    return `${firstPart}... ${lastPart}`;
+  };
+
+const processcontent = async () => {
+  if (!textInput.trim() && !uploadedFile) {
+    alert("Please provide content to process!");
+    return;
   }
+
+  setIsProcessing(true);
+  try {
+    const formData = new FormData();
+    if (uploadedFile) formData.append('file', uploadedFile);
+    if (textInput.trim()) formData.append('prompt', textInput);
+
+    const response = await fetch('http://localhost:5000/api/data/summarize', {
+      method: 'POST',
+      body: formData // No headers!
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "API request failed");
+    }
+
+    const { paragraphs } = await response.json();
+
+    const formattedParagraphs = paragraphs.map((summary, index) => ({
+      id: index,
+      title: `Section ${index + 1}`,
+      summary: summary,
+      keyPoints: []
+    }));
+
+    setSummarizedParagraphs(formattedParagraphs);
+
+  } catch (error) {
+    console.error("API Error:", error);
+    alert("Summarization failed. Please try again.");
+  } finally {
+    setIsProcessing(false);
+  }
+};
+
+
+
+  // Text-to-Speech functionality
+ const speakText = (text, paragraphId) => {
+  // If the same paragraph is playing, stop it
+  if (currentlyPlaying === paragraphId) {
+    speechSynthesis.cancel();
+    setCurrentlyPlaying(null);
+    return;
+  }
+  // If another paragraph is playing, stop it first
+  if (currentlyPlaying !== null) {
+    speechSynthesis.cancel();
+    setCurrentlyPlaying(null);
+  }
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = speed;
+  utterance.volume = volume / 100;
+  // ... set voice as before
+
+  utterance.onstart = () => setCurrentlyPlaying(paragraphId);
+  utterance.onend = () => setCurrentlyPlaying(null);
+  utterance.onerror = () => setCurrentlyPlaying(null);
+
+  speechSynthesis.speak(utterance);
+};
+
+
+  const stopSpeech = () => {
+    speechSynthesis.cancel();
+    setCurrentlyPlaying(null);
+  };
 
   return (
     <div
@@ -137,12 +270,26 @@ export default function NeuroNavApp() {
                 Drop your content here or browse
               </h3>
               <p className="text-sm opacity-75 mb-4">
-                PDFs, Word docs, or plain text • AI will optimize it for your
-                learning style
+                PDFs, Word docs, or plain text • AI will optimize it for your learning style
               </p>
-              <button className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition-all duration-200 transform hover:scale-105">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.txt,.doc,.docx"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition-all duration-200 transform hover:scale-105"
+              >
                 ✨ Choose File
               </button>
+              {uploadedFile && (
+                <p className="text-sm mt-2 text-green-600">
+                  ✓ {uploadedFile.name} uploaded
+                </p>
+              )}
             </div>
 
             {/* Text Input Area */}
@@ -160,10 +307,55 @@ export default function NeuroNavApp() {
             </div>
 
             {/* Transform Button */}
-            <button className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-4 rounded-xl font-semibold text-lg hover:shadow-lg transition-all duration-200 transform hover:scale-105">
-              ✨ Transform My Content ✨
+            <button 
+              onClick={processcontent}
+              disabled={isProcessing}
+              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-4 rounded-xl font-semibold text-lg hover:shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isProcessing ? (
+                <span className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  Processing Content...
+                </span>
+              ) : (
+                "✨ Transform My Content ✨"
+              )}
             </button>
           </div>
+
+          {/* Summarized Content Display */}
+          
+              {/* Summarized Content Display */}
+{summarizedParagraphs.length > 0 && (
+  <div className={`${cardClasses} backdrop-blur-sm rounded-2xl p-6 border shadow-xl`}>
+    <div className="flex items-center space-x-3 mb-6">
+      <div className="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center">
+        <BookOpen className="w-5 h-5 text-white" />
+      </div>
+      <h2 className="text-xl font-bold">Summarized Content</h2>
+    </div>
+    {/* All summaries in one box */}
+    <div>
+      {summarizedParagraphs.map((paragraph) => (
+        <div key={paragraph.id} className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-lg font-semibold text-purple-600">{paragraph.title}</h3>
+            <button
+              onClick={() => speakText(paragraph.summary, paragraph.id)}
+              className="bg-blue-500 text-white px-2 py-1 rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-1 text-xs"
+            >
+              <PlayCircle className="w-3 h-3" />
+              <span>Play</span>
+            </button>
+          </div>
+          <p className="text-sm leading-relaxed">{paragraph.summary}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+
+           
 
           {/* Voice Assistant */}
           <div
@@ -174,22 +366,6 @@ export default function NeuroNavApp() {
                 <Mic className="w-5 h-5 text-white" />
               </div>
               <h2 className="text-xl font-bold">Voice Assistant</h2>
-            </div>
-
-            {/* Voice Buttons */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              <button className="bg-cyan-500 text-white py-3 px-4 rounded-xl font-medium hover:bg-cyan-600 transition-colors flex items-center justify-center space-x-2">
-                <Play className="w-4 h-4" />
-                <span>Read Aloud</span>
-              </button>
-              <button className="bg-gray-500 text-white py-3 px-4 rounded-xl font-medium hover:bg-gray-600 transition-colors flex items-center justify-center space-x-2">
-                <Square className="w-4 h-4" />
-                <span>Stop</span>
-              </button>
-              <button className="bg-yellow-500 text-white py-3 px-4 rounded-xl font-medium hover:bg-yellow-600 transition-colors flex items-center justify-center space-x-2">
-                <Mic className="w-4 h-4" />
-                <span>Voice Chat</span>
-              </button>
             </div>
 
             {/* Voice Controls */}
@@ -225,7 +401,7 @@ export default function NeuroNavApp() {
                     step="0.1"
                     value={speed}
                     onChange={(e) => setSpeed(parseFloat(e.target.value))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                   />
                 </div>
                 <div>
@@ -239,7 +415,7 @@ export default function NeuroNavApp() {
                     max="100"
                     value={volume}
                     onChange={(e) => setVolume(parseInt(e.target.value))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                   />
                 </div>
               </div>
@@ -250,7 +426,10 @@ export default function NeuroNavApp() {
                 isDarkMode ? "bg-gray-700" : "bg-gray-100"
               } text-sm`}
             >
-              📄 Add some content above to enable voice reading.
+              {summarizedParagraphs.length > 0 
+                ? "🎵 Content ready for text-to-speech! Use the play buttons above." 
+                : "📄 Add some content above to enable voice reading."
+              }
             </div>
           </div>
         </div>
@@ -443,7 +622,7 @@ export default function NeuroNavApp() {
             </div>
           </div>
 
-          {/* Focus Mode Camera goes here */}
+          {/* Focus Mode Camera */}
           {attentionSpan !== null && (
             <div className="text-center text-sm text-blue-700 font-medium">
               Attention Span: {attentionSpan}%

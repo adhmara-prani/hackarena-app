@@ -4,9 +4,10 @@ import path from "path";
 
 const parsePdf = async (req, res, next) => {
   try {
-    if (!req.file || !req.file.path) {
-      return res.status(400).json({ message: "Pdf file not uploaded!" });
-    }
+      if (!req.file || !req.file.path) {
+  // No file uploaded, just continue to next middleware
+  return next();
+}
 
     const filePath = req.file.path;
     const dataBuffer = fs.readFileSync(filePath);
