@@ -102,3 +102,14 @@ export const sendSurveyData = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error!" });
   }
 };
+
+export const getSurveyData = async (req, res) => {
+  try {
+    const userId = req.userID;
+    const user = await User.findById(userId);
+    res.status(200).json({ surveyData: user?.surveyData || [] });
+  } catch (error) {
+    console.error("Error fetching survey data", error.message);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};

@@ -64,6 +64,7 @@ export default function NeuroNavApp() {
   const [speed, setSpeed] = useState(1.0);
   const [volume, setVolume] = useState(80);
   const [streak, setStreak] = useState(0);
+  const [attentionSpan, setAttentionSpan] = useState(null);
   const [summarizedParagraphs, setSummarizedParagraphs] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentlyPlaying, setCurrentlyPlaying] = useState(null);
@@ -236,14 +237,16 @@ export default function NeuroNavApp() {
           </div>
         </div>
         <div className="bg-green-500 ml-auto mr-5 text-white px-4 py-2 rounded-full text-sm font-medium">
-          🎯 Focus Mode Ready
+          {attentionSpan !== null
+            ? `🎯 Attention Span: ${attentionSpan}%`
+            : "🎯 Focus Mode Ready"}
         </div>
         <div className="relative">
           <button
             onClick={() => setShowSettings(!showSettings)}
             className="p-2 bg-gray-200 rounded-full hover:bg-gray-300"
           >
-            <Settings className="w-5 h-5 text-gray-700" />
+            <Settings className="w-5 h-5 text-gray-700 cursor-pointer" />
           </button>
 
           {showSettings && (
@@ -472,6 +475,8 @@ export default function NeuroNavApp() {
             cardClasses={cardClasses}
             streak={streak}
             setStreak={setStreak}
+            attentionSpan={attentionSpan}
+            setAttentionSpan={setAttentionSpan}
           />
         </div>
       </div>

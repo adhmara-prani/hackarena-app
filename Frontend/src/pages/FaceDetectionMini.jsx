@@ -92,11 +92,7 @@ const FaceDetectionMini = forwardRef(
 
     return (
       <div className="mt-4 flex justify-center items-center min-h-[240px]">
-        {nocameraaccess ? (
-          <div className="text-red-500 font-medium text-center px-4">
-            🚫 Please enable camera access to use focus mode.
-          </div>
-        ) : cameraPaused ? (
+        {cameraPaused ? (
           <div className="text-center px-4 z-10">
             <lottie-player
               src="/animations/meditating_guru.json"
@@ -118,7 +114,6 @@ const FaceDetectionMini = forwardRef(
             muted
             width={320}
             height={240}
-            className="rounded-xl shadow-md"
           />
         )}
       </div>

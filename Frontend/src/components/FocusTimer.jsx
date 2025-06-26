@@ -1,40 +1,86 @@
 // src/components/FocusTimer.jsx
 import React, { useEffect, useRef, useState } from "react";
+import axios from "axios";
 import { Timer, Play, Square, RotateCcw, Flame } from "lucide-react";
 import FaceDetectionMini from "../pages/FaceDetectionMini.jsx";
 
-const FocusTimer = ({ isDarkMode, cardClasses, setStreak, streak }) => {
+const getMinutesFromAnswer = (answer) => {
+  switch (answer) {
+    case "15-20 mins":
+      return 15;
+    case "20-30 mins":
+      return 20;
+    case "30-45 mins":
+      return 30;
+    case ">45 mins":
+      return 45;
+    default:
+      return 1;
+  }
+};
+
+const FocusTimer = ({
+  isDarkMode,
+  cardClasses,
+  setStreak,
+  streak,
+  attentionSpan,
+  setAttentionSpan,
+}) => {
+  const [hardCodedTime, setHardCodedTime] = useState(1);
   const [timerMinutes, setTimerMinutes] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
-  const [goalAchieved, setGoalAchieved] = useState(false);
-  const [attentionSpan, setAttentionSpan] = useState(null);
+  const goalAchievedRef = useRef(false);
   const faceRef = useRef();
 
   useEffect(() => {
+    const fetchSurveyData = async () => {
+      try {
+        const res = await axios.get(
+          `${import.meta.env.VITE_BASE_URL}/api/users/survey`,
+          {
+            withCredentials: true,
+          }
+        );
+        const surveyData = res.data?.surveyData || [];
+
+        const focusAnswerObj = surveyData.find(
+          (query) =>
+            query.question === "How long can you stay focused on a single task?"
+        );
+
+        if (focusAnswerObj?.answer) {
+          const minutes = getMinutesFromAnswer(focusAnswerObj.answer);
+          setHardCodedTime(minutes);
+        }
+      } catch (err) {
+        console.error("Failed to fetch survey data", err);
+      }
+    };
+
+    fetchSurveyData();
+  }, []);
+
+  useEffect(() => {
     let timer;
-    if (isTimerRunning && timerMinutes < 120) {
+    if (isTimerRunning && timerMinutes < hardCodedTime * 60) {
       timer = setInterval(() => {
         setTimerMinutes((prev) => {
-          if (prev + 1 >= 120) {
-            setIsTimerRunning(false);
-            setGoalAchieved(true);
-            setStreak((prevStreak) => prevStreak + 1);
-            faceRef.current?.stopDetection();
-            return 120;
+          if (prev + 1 >= hardCodedTime * 60) {
+            if (!goalAchievedRef.current) {
+              setIsTimerRunning(false);
+              goalAchievedRef.current = true;
+              setStreak((prevStreak) => prevStreak + 1);
+              faceRef.current?.stopDetection();
+            }
+            return hardCodedTime;
           }
           return prev + 1;
         });
       }, 1000);
     }
     return () => clearInterval(timer);
-  }, [isTimerRunning]);
-
-  useEffect(() => {
-    if (!goalAchieved && timerMinutes >= 120) {
-      setGoalAchieved(true);
-      setStreak((prev) => prev + 1);
-    }
-  }, [timerMinutes, goalAchieved, setStreak]);
+  }, [isTimerRunning, hardCodedTime]);
 
   const handleStart = () => {
     setIsTimerRunning(true);
@@ -49,7 +95,7 @@ const FocusTimer = ({ isDarkMode, cardClasses, setStreak, streak }) => {
   const handleReset = () => {
     setTimerMinutes(0);
     setIsTimerRunning(false);
-    setGoalAchieved(false);
+    goalAchievedRef.current = false;
     faceRef.current?.stopDetection();
   };
 
@@ -80,18 +126,22 @@ const FocusTimer = ({ isDarkMode, cardClasses, setStreak, streak }) => {
           <div className="mb-4">
             <div className="text-sm font-medium mb-2">Daily Goal</div>
             <div className="text-lg font-bold">
-              {Math.floor(timerMinutes / 60)} / 2min
+              {Math.floor(timerMinutes / 60)} / {hardCodedTime} min
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
               <div
                 className="bg-purple-500 h-2 rounded-full"
                 style={{
-                  width: `${Math.min((timerMinutes / 120) * 100, 100)}%`,
+                  width: `${Math.min(
+                    (timerMinutes / (hardCodedTime * 60)) * 100,
+                    100
+                  )}%`,
                 }}
               ></div>
             </div>
             <div className="text-xs opacity-75 mt-1">
-              {Math.floor((timerMinutes / 120) * 100)}% complete
+              {Math.floor((timerMinutes / (hardCodedTime * 60)) * 100)}%
+              complete
             </div>
           </div>
         </div>
@@ -129,12 +179,6 @@ const FocusTimer = ({ isDarkMode, cardClasses, setStreak, streak }) => {
           <span className="font-bold">{streak} days</span>
         </div>
       </div>
-
-      {attentionSpan !== null && (
-        <div className="text-center text-sm text-emerald-600 font-medium">
-          Attention Span: {attentionSpan}%
-        </div>
-      )}
 
       <FaceDetectionMini
         ref={faceRef}
