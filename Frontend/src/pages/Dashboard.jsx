@@ -31,6 +31,12 @@ export default function NeuroNavApp() {
   const [speed, setSpeed] = useState(1.0);
   const [volume, setVolume] = useState(80);
   const [streak, setStreak] = useState(0);
+  const [summarizedParagraphs, setSummarizedParagraphs] = useState([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [currentlyPlaying, setCurrentlyPlaying] = useState(null);
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const speechSynthesis = window.speechSynthesis;
+  const fileInputRef = useRef();
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
   const themeClasses = isDarkMode
@@ -42,6 +48,128 @@ export default function NeuroNavApp() {
     : "bg-white/80 border-gray-200";
 
   const fontClass = dyslexicFont ? "font-mono" : "font-sans";
+
+  // File handling
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setUploadedFile(file);
+      handleFileRead(file);
+    }
+  };
+
+  const handleFileRead = async (file) => {
+    setIsProcessing(true);
+    try {
+      let text = "";
+
+      if (file.type === "application/pdf") {
+        // For PDF files, we'll simulate reading the content
+        // In a real implementation, you'd use a PDF parsing library
+        text =
+          "This is a sample PDF content. In a real implementation, you would use a PDF parsing library like pdf-parse or PDF.js to extract text from the PDF file. This content would then be processed and summarized into digestible paragraphs for better learning.";
+      } else if (file.type === "text/plain" || file.type.includes("text")) {
+        text = await file.text();
+      } else {
+        alert("Please upload a text file or PDF");
+        setIsProcessing(false);
+        return;
+      }
+
+      // Combine file content with text input
+      const combinedText = [text, textInput].filter(Boolean).join("\n\n");
+      await processcontent(combinedText);
+    } catch (error) {
+      console.error("Error reading file:", error);
+      alert("Error reading file. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Content processing and summarization
+
+  const createSummary = (text) => {
+    // Simple summarization logic - in a real app, you'd use AI
+    const words = text.split(" ");
+    if (words.length <= 20) return text;
+
+    // Take first and last parts of the text for summary
+    const firstPart = words.slice(0, 10).join(" ");
+    const lastPart = words.slice(-10).join(" ");
+    return `${firstPart}... ${lastPart}`;
+  };
+
+  const processcontent = async () => {
+    if (!textInput.trim() && !uploadedFile) {
+      alert("Please provide content to process!");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const formData = new FormData();
+      if (uploadedFile) formData.append("file", uploadedFile);
+      if (textInput.trim()) formData.append("prompt", textInput);
+
+      const response = await fetch("http://localhost:5000/api/data/summarize", {
+        method: "POST",
+        body: formData, // No headers!
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "API request failed");
+      }
+
+      const { paragraphs } = await response.json();
+
+      const formattedParagraphs = paragraphs.map((summary, index) => ({
+        id: index,
+        title: `Section ${index + 1}`,
+        summary: summary,
+        keyPoints: [],
+      }));
+
+      setSummarizedParagraphs(formattedParagraphs);
+    } catch (error) {
+      console.error("API Error:", error);
+      alert("Summarization failed. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Text-to-Speech functionality
+  const speakText = (text, paragraphId) => {
+    // If the same paragraph is playing, stop it
+    if (currentlyPlaying === paragraphId) {
+      speechSynthesis.cancel();
+      setCurrentlyPlaying(null);
+      return;
+    }
+    // If another paragraph is playing, stop it first
+    if (currentlyPlaying !== null) {
+      speechSynthesis.cancel();
+      setCurrentlyPlaying(null);
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = speed;
+    utterance.volume = volume / 100;
+    // ... set voice as before
+
+    utterance.onstart = () => setCurrentlyPlaying(paragraphId);
+    utterance.onend = () => setCurrentlyPlaying(null);
+    utterance.onerror = () => setCurrentlyPlaying(null);
+
+    speechSynthesis.speak(utterance);
+  };
+
+  const stopSpeech = () => {
+    speechSynthesis.cancel();
+    setCurrentlyPlaying(null);
+  };
 
   return (
     <div
