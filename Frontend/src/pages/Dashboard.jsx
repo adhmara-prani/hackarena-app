@@ -21,11 +21,44 @@ import {
 } from "lucide-react";
 import FocusTimer from "../components/FocusTimer.jsx";
 
+// toggle for navbar
+function ToggleSwitch({
+  icon,
+  title,
+  subtitle,
+  isActive,
+  onToggle,
+  activeColor = "bg-yellow-400",
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center space-x-3">
+        {icon}
+        <div>
+          <div className="font-medium">{title}</div>
+          <div className="text-sm opacity-75">{subtitle}</div>
+        </div>
+      </div>
+      <button
+        onClick={onToggle}
+        className={`w-12 h-6 rounded-full transition-colors ${
+          isActive ? activeColor : "bg-gray-300"
+        }`}
+      >
+        <div
+          className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-transform ${
+            isActive ? "translate-x-6" : "translate-x-0.5"
+          }`}
+        />
+      </button>
+    </div>
+  );
+}
+
 export default function NeuroNavApp() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [dyslexicFont, setDyslexicFont] = useState(false);
-  const [focusMode, setFocusMode] = useState(false);
-  const [calmMode, setCalmMode] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [textInput, setTextInput] = useState("");
   const [voiceStyle, setVoiceStyle] = useState("friendly");
   const [speed, setSpeed] = useState(1.0);
@@ -40,11 +73,11 @@ export default function NeuroNavApp() {
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
   const themeClasses = isDarkMode
-    ? "bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900 text-white"
+    ? "bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900 text-black"
     : "bg-gradient-to-br from-purple-100 via-pink-50 to-orange-100 text-gray-900";
 
   const cardClasses = isDarkMode
-    ? "bg-gray-800/50 border-gray-700"
+    ? "bg-gray-800/50 border-gray-700 text-white"
     : "bg-white/80 border-gray-200";
 
   const fontClass = dyslexicFont ? "font-mono" : "font-sans";
@@ -175,19 +208,66 @@ export default function NeuroNavApp() {
     <div
       className={`min-h-screen ${themeClasses} ${fontClass} transition-all duration-300`}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between p-6">
+      {/* Navbar */}
+      <div className="flex items-center p-6">
         <div className="flex items-center space-x-3">
           <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
             <BookOpen className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">NeuroNav</h1>
-            <p className="text-sm opacity-75">AI-Powered Learning Companion</p>
+            <h1
+              className={
+                isDarkMode
+                  ? "text-2xl font-bold text-white"
+                  : "text-2xl font-bold"
+              }
+            >
+              NeuroNav
+            </h1>
+            <p
+              className={
+                isDarkMode
+                  ? "text-sm opacity-75 text-white"
+                  : "text-sm opacity-75"
+              }
+            >
+              AI-Powered Learning Companion
+            </p>
           </div>
         </div>
-        <div className="bg-green-500 text-white px-4 py-2 rounded-full text-sm font-medium">
+        <div className="bg-green-500 ml-auto mr-5 text-white px-4 py-2 rounded-full text-sm font-medium">
           🎯 Focus Mode Ready
+        </div>
+        <div className="relative">
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className="p-2 bg-gray-200 rounded-full hover:bg-gray-300"
+          >
+            <Settings className="w-5 h-5 text-gray-700" />
+          </button>
+
+          {showSettings && (
+            <div className="absolute right-0 mt-2 w-64 z-50 bg-white shadow-xl rounded-xl p-4 border border-gray-200">
+              <h2 className="text-lg font-semibold mb-4">Accessibility</h2>
+              <div className="space-y-4">
+                <ToggleSwitch
+                  icon={<Eye className="w-5 h-5 text-emerald-500" />}
+                  title="Dyslexic Font"
+                  subtitle="Easier reading"
+                  isActive={dyslexicFont}
+                  onToggle={() => setDyslexicFont(!dyslexicFont)}
+                />
+                <ToggleSwitch
+                  icon={<Moon className="w-5 h-5 text-emerald-500" />}
+                  title="Dark Mode"
+                  subtitle="Better contrast"
+                  isActive={isDarkMode}
+                  onToggle={toggleDarkMode}
+                  activeColor="bg-blue-500"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -386,122 +466,6 @@ export default function NeuroNavApp() {
 
         {/* Right Sidebar */}
         <div className="w-full lg:w-80 space-y-6">
-          {/* Accessibility Panel */}
-          <div
-            className={`${cardClasses} backdrop-blur-sm rounded-2xl p-6 border shadow-xl`}
-          >
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center">
-                <Settings className="w-5 h-5 text-white" />
-              </div>
-              <h2 className="text-xl font-bold">Accessibility</h2>
-            </div>
-
-            <div className="space-y-4">
-              {/* Dyslexic Font Toggle */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Eye className="w-5 h-5 text-emerald-500" />
-                  <div>
-                    <div className="font-medium">Dyslexic Font</div>
-                    <div className="text-sm opacity-75">Easier reading</div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setDyslexicFont(!dyslexicFont)}
-                  className={`w-12 h-6 rounded-full transition-colors ${
-                    dyslexicFont ? "bg-yellow-400" : "bg-gray-300"
-                  }`}
-                >
-                  <div
-                    className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-transform ${
-                      dyslexicFont ? "translate-x-6" : "translate-x-0.5"
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {/* Dark Mode Toggle */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Moon className="w-5 h-5 text-emerald-500" />
-                  <div>
-                    <div className="font-medium">Dark Mode</div>
-                    <div className="text-sm opacity-75">Better contrast</div>
-                  </div>
-                </div>
-                <button
-                  onClick={toggleDarkMode}
-                  className={`w-12 h-6 rounded-full transition-colors ${
-                    isDarkMode ? "bg-blue-500" : "bg-gray-300"
-                  }`}
-                >
-                  <div
-                    className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-transform ${
-                      isDarkMode ? "translate-x-6" : "translate-x-0.5"
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {/* Focus Mode Toggle */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Focus className="w-5 h-5 text-emerald-500" />
-                  <div>
-                    <div className="font-medium">Focus Mode</div>
-                    <div className="text-sm opacity-75">Highlight text</div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setFocusMode(!focusMode)}
-                  className={`w-12 h-6 rounded-full transition-colors ${
-                    focusMode ? "bg-yellow-400" : "bg-gray-300"
-                  }`}
-                >
-                  <div
-                    className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-transform ${
-                      focusMode ? "translate-x-6" : "translate-x-0.5"
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {/* Calm Mode Toggle */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Zap className="w-5 h-5 text-emerald-500" />
-                  <div>
-                    <div className="font-medium">Calm Mode</div>
-                    <div className="text-sm opacity-75">Less animation</div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setCalmMode(!calmMode)}
-                  className={`w-12 h-6 rounded-full transition-colors ${
-                    calmMode ? "bg-yellow-400" : "bg-gray-300"
-                  }`}
-                >
-                  <div
-                    className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-transform ${
-                      calmMode ? "translate-x-6" : "translate-x-0.5"
-                    }`}
-                  />
-                </button>
-              </div>
-            </div>
-
-            {/* Success Message */}
-            <div className="mt-6 bg-green-100 border border-green-200 text-green-800 p-4 rounded-xl">
-              <div className="flex items-center space-x-2">
-                <span>🎯</span>
-                <span className="font-medium">
-                  Your interface is optimized for learning!
-                </span>
-              </div>
-            </div>
-          </div>
-
           {/* Focus Timer */}
           <FocusTimer
             isDarkMode={isDarkMode}
