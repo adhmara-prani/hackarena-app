@@ -1,159 +1,129 @@
-// FaceDetectionMini.jsx
-// import React, { useEffect, useRef, useState } from "react";
-// import { FilesetResolver, FaceDetector } from "@mediapipe/tasks-vision";
-
-// const FaceDetectionMini = ({ setAttentionSpan }) => {
-//   const videoRef = useRef(null);
-//   const [faceDetector, setFaceDetector] = useState(null);
-//   const [runningMode, setRunningMode] = useState("IMAGE");
-
-//   useEffect(() => {
-//     const initializeFaceDetector = async () => {
-//       const vision = await FilesetResolver.forVisionTasks("/mediapipe");
-//       const detector = await FaceDetector.createFromOptions(vision, {
-//         baseOptions: {
-//           modelAssetPath: "/models/blaze_face_short_range.tflite",
-//           delegate: "GPU",
-//         },
-//         runningMode: "IMAGE",
-//       });
-//       setFaceDetector(detector);
-//     };
-
-//     initializeFaceDetector();
-//   }, []);
-
-//   const predictWebcam = async () => {
-//     if (!videoRef.current || !faceDetector) {
-//       return;
-//     }
-
-//     if (runningMode === "IMAGE") {
-//       await faceDetector.setOptions({ runningMode: "VIDEO" });
-//       setRunningMode("VIDEO");
-//     }
-
-//     const video = videoRef.current;
-//     const startTimeMs = performance.now();
-//     const results = await faceDetector.detectForVideo(video, startTimeMs);
-//     if (results.detections.length > 0) {
-//       const score = results.detections[0].categories[0].score;
-//       setAttentionSpan(Math.round(score * 100));
-//     }
-
-//     requestAnimationFrame(predictWebcam);
-//   };
-
-//   const enableCam = async () => {
-//     if (!faceDetector) {
-//       return;
-//     }
-//     const stream = await navigator.mediaDevices.getUserMedia({
-//       video: { width: 320, height: 240 }, // smaller resolution
-//     });
-//     videoRef.current.srcObject = stream;
-//     videoRef.current.onloadeddata = predictWebcam;
-//   };
-
-//   useEffect(() => {
-//     enableCam();
-//   }, [faceDetector]);
-
-//   return (
-//     <div className="mt-4 flex justify-center">
-//       <video
-//         ref={videoRef}
-//         autoPlay
-//         playsInline
-//         muted
-//         width={320}
-//         height={240}
-//         className="rounded-xl shadow-md"
-//       />
-//     </div>
-//   );
-// };
-
-// export default FaceDetectionMini;
-
-import React, { useRef, forwardRef, useImperativeHandle } from "react";
+import React, {
+  useRef,
+  forwardRef,
+  useImperativeHandle,
+  useState,
+} from "react";
 import { FilesetResolver, FaceDetector } from "@mediapipe/tasks-vision";
+import "@lottiefiles/lottie-player";
 
-const FaceDetectionMini = forwardRef(({ setAttentionSpan }, ref) => {
-  const videoRef = useRef(null);
-  const faceDetectorRef = useRef(null);
-  const isRunningRef = useRef(false);
-  const runningMode = useRef("IMAGE");
+const FaceDetectionMini = forwardRef(
+  ({ setAttentionSpan, isDarkMode }, ref) => {
+    const videoRef = useRef(null);
+    const faceDetectorRef = useRef(null);
+    const isRunningRef = useRef(false);
+    const runningMode = useRef("IMAGE");
+    const [nocameraaccess, setNocameraaccess] = useState(false);
+    const [cameraPaused, setCamerapaused] = useState(false);
 
-  useImperativeHandle(ref, () => ({
-    startDetection,
-    stopDetection,
-  }));
+    useImperativeHandle(ref, () => ({
+      startDetection,
+      stopDetection,
+    }));
 
-  const startDetection = async () => {
-    if (!faceDetectorRef.current) {
-      const vision = await FilesetResolver.forVisionTasks("/mediapipe");
-      faceDetectorRef.current = await FaceDetector.createFromOptions(vision, {
-        baseOptions: {
-          modelAssetPath: "/models/blaze_face_short_range.tflite",
-          delegate: "GPU",
-        },
-        runningMode: "IMAGE",
-      });
-    }
+    const startDetection = async () => {
+      setNocameraaccess(false); // reset before typing
+      setCamerapaused(false);
 
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: 320, height: 240 },
-    });
+      try {
+        if (!faceDetectorRef.current) {
+          const vision = await FilesetResolver.forVisionTasks("/mediapipe");
+          faceDetectorRef.current = await FaceDetector.createFromOptions(
+            vision,
+            {
+              baseOptions: {
+                modelAssetPath: "/models/blaze_face_short_range.tflite",
+                delegate: "GPU",
+              },
+              runningMode: "IMAGE",
+            }
+          );
+        }
 
-    if (videoRef.current) {
-      videoRef.current.srcObject = stream;
-      await videoRef.current.play();
-      isRunningRef.current = true;
-      predictWebcam();
-    }
-  };
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 320, height: 240 },
+        });
 
-  const stopDetection = () => {
-    isRunningRef.current = false;
-    if (videoRef.current?.srcObject) {
-      videoRef.current.srcObject.getTracks().forEach((t) => t.stop());
-    }
-  };
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+          isRunningRef.current = true;
+          predictWebcam();
+        }
+      } catch (error) {
+        console.log("Camera access denied!", error);
+        setNocameraaccess(true);
+      }
+    };
 
-  const predictWebcam = async () => {
-    if (!isRunningRef.current || !videoRef.current || !faceDetectorRef.current)
-      return;
+    const stopDetection = () => {
+      isRunningRef.current = false;
+      setCamerapaused(true);
+      if (videoRef.current?.srcObject) {
+        videoRef.current.srcObject.getTracks().forEach((t) => t.stop());
+        videoRef.current.srcObject = null;
+      }
+    };
 
-    if (runningMode.current === "IMAGE") {
-      await faceDetectorRef.current.setOptions({ runningMode: "VIDEO" });
-      runningMode.current = "VIDEO";
-    }
+    const predictWebcam = async () => {
+      if (
+        !isRunningRef.current ||
+        !videoRef.current ||
+        !faceDetectorRef.current
+      )
+        return;
 
-    const results = await faceDetectorRef.current.detectForVideo(
-      videoRef.current,
-      performance.now()
+      if (runningMode.current === "IMAGE") {
+        await faceDetectorRef.current.setOptions({ runningMode: "VIDEO" });
+        runningMode.current = "VIDEO";
+      }
+
+      const results = await faceDetectorRef.current.detectForVideo(
+        videoRef.current,
+        performance.now()
+      );
+      if (results.detections.length > 0) {
+        const score = results.detections[0].categories[0].score;
+        setAttentionSpan(Math.round(score * 100));
+      }
+
+      setTimeout(() => predictWebcam(), 500);
+    };
+
+    return (
+      <div className="mt-4 flex justify-center items-center min-h-[240px]">
+        {nocameraaccess ? (
+          <div className="text-red-500 font-medium text-center px-4">
+            🚫 Please enable camera access to use focus mode.
+          </div>
+        ) : cameraPaused ? (
+          <div className="text-center px-4 z-10">
+            <lottie-player
+              src="/animations/meditating_guru.json"
+              background="transparent"
+              speed="1"
+              style={{ width: "200px", height: "200px", margin: "0 auto" }}
+              loop
+              autoplay
+            ></lottie-player>
+            <p className={isDarkMode ? "text-white mt-2" : "text-black mt-2"}>
+              Focus mode is paused. Take a break if you want to 😎.
+            </p>
+          </div>
+        ) : (
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            width={320}
+            height={240}
+            className="rounded-xl shadow-md"
+          />
+        )}
+      </div>
     );
-    if (results.detections.length > 0) {
-      const score = results.detections[0].categories[0].score;
-      setAttentionSpan(Math.round(score * 100));
-    }
-
-    setTimeout(() => predictWebcam(), 500);
-  };
-
-  return (
-    <div className="mt-4 flex justify-center">
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        width={320}
-        height={240}
-      />
-    </div>
-  );
-});
+  }
+);
 
 export default FaceDetectionMini;
