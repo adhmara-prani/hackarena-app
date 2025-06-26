@@ -15,6 +15,9 @@ import {
   Volume2,
   RotateCcw,
   Flame,
+  PlayCircle,
+  PauseCircle,
+  StopCircle,
 } from "lucide-react";
 import FocusTimer from "../components/FocusTimer.jsx";
 
@@ -86,9 +89,24 @@ export default function NeuroNavApp() {
                 PDFs, Word docs, or plain text • AI will optimize it for your
                 learning style
               </p>
-              <button className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition-all duration-200 transform hover:scale-105">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.txt,.doc,.docx"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition-all duration-200 transform hover:scale-105"
+              >
                 ✨ Choose File
               </button>
+              {uploadedFile && (
+                <p className="text-sm mt-2 text-green-600">
+                  ✓ {uploadedFile.name} uploaded
+                </p>
+              )}
             </div>
 
             {/* Text Input Area */}
@@ -106,10 +124,61 @@ export default function NeuroNavApp() {
             </div>
 
             {/* Transform Button */}
-            <button className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-4 rounded-xl font-semibold text-lg hover:shadow-lg transition-all duration-200 transform hover:scale-105">
-              ✨ Transform My Content ✨
+            <button
+              onClick={processcontent}
+              disabled={isProcessing}
+              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-4 rounded-xl font-semibold text-lg hover:shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isProcessing ? (
+                <span className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  Processing Content...
+                </span>
+              ) : (
+                "✨ Transform My Content ✨"
+              )}
             </button>
           </div>
+
+          {/* Summarized Content Display */}
+
+          {/* Summarized Content Display */}
+          {summarizedParagraphs.length > 0 && (
+            <div
+              className={`${cardClasses} backdrop-blur-sm rounded-2xl p-6 border shadow-xl`}
+            >
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center">
+                  <BookOpen className="w-5 h-5 text-white" />
+                </div>
+                <h2 className="text-xl font-bold">Summarized Content</h2>
+              </div>
+              {/* All summaries in one box */}
+              <div>
+                {summarizedParagraphs.map((paragraph) => (
+                  <div key={paragraph.id} className="mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-lg font-semibold text-purple-600">
+                        {paragraph.title}
+                      </h3>
+                      <button
+                        onClick={() =>
+                          speakText(paragraph.summary, paragraph.id)
+                        }
+                        className="bg-blue-500 text-white px-2 py-1 rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-1 text-xs"
+                      >
+                        <PlayCircle className="w-3 h-3" />
+                        <span>Play</span>
+                      </button>
+                    </div>
+                    <p className="text-sm leading-relaxed">
+                      {paragraph.summary}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Voice Assistant */}
           <div
@@ -120,22 +189,6 @@ export default function NeuroNavApp() {
                 <Mic className="w-5 h-5 text-white" />
               </div>
               <h2 className="text-xl font-bold">Voice Assistant</h2>
-            </div>
-
-            {/* Voice Buttons */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              <button className="bg-cyan-500 text-white py-3 px-4 rounded-xl font-medium hover:bg-cyan-600 transition-colors flex items-center justify-center space-x-2">
-                <Play className="w-4 h-4" />
-                <span>Read Aloud</span>
-              </button>
-              <button className="bg-gray-500 text-white py-3 px-4 rounded-xl font-medium hover:bg-gray-600 transition-colors flex items-center justify-center space-x-2">
-                <Square className="w-4 h-4" />
-                <span>Stop</span>
-              </button>
-              <button className="bg-yellow-500 text-white py-3 px-4 rounded-xl font-medium hover:bg-yellow-600 transition-colors flex items-center justify-center space-x-2">
-                <Mic className="w-4 h-4" />
-                <span>Voice Chat</span>
-              </button>
             </div>
 
             {/* Voice Controls */}
@@ -171,7 +224,7 @@ export default function NeuroNavApp() {
                     step="0.1"
                     value={speed}
                     onChange={(e) => setSpeed(parseFloat(e.target.value))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                   />
                 </div>
                 <div>
@@ -185,7 +238,7 @@ export default function NeuroNavApp() {
                     max="100"
                     value={volume}
                     onChange={(e) => setVolume(parseInt(e.target.value))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                   />
                 </div>
               </div>
@@ -196,7 +249,9 @@ export default function NeuroNavApp() {
                 isDarkMode ? "bg-gray-700" : "bg-gray-100"
               } text-sm`}
             >
-              📄 Add some content above to enable voice reading.
+              {summarizedParagraphs.length > 0
+                ? "🎵 Content ready for text-to-speech! Use the play buttons above."
+                : "📄 Add some content above to enable voice reading."}
             </div>
           </div>
         </div>
