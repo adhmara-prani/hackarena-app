@@ -208,6 +208,17 @@ export default function NeuroNavApp() {
     setCurrentlyPlaying(null);
   };
 
+  useEffect(() => {
+    const savedStreak = localStorage.getItem("focusStreak");
+    if (savedStreak) {
+      setStreak(parseInt(savedStreak, 10));
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("focusStreak", streak);
+  }, [streak]);
+
   return (
     <div
       className={`min-h-screen ${themeClasses} ${fontClass} transition-all duration-300`}
