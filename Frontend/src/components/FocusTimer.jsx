@@ -34,6 +34,17 @@ const FocusTimer = ({
   const faceRef = useRef();
 
   useEffect(() => {
+    const savedMinutes = localStorage.getItem("focusTimerMinutes");
+    if (savedMinutes) {
+      setTimerMinutes(parseInt(savedMinutes, 10));
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("focusTimerMinutes", timerMinutes);
+  }, [timerMinutes]);
+
+  useEffect(() => {
     const fetchSurveyData = async () => {
       try {
         const res = await axios.get(
@@ -63,22 +74,31 @@ const FocusTimer = ({
 
   useEffect(() => {
     let timer;
-    if (isTimerRunning && timerMinutes < hardCodedTime * 60) {
+    const milestoneTime = hardCodedTime * 60; // e.g. 60 seconds
+    const fullDuration = hardCodedTime * 60 * 6; // e.g. 6 mins
+
+    if (isTimerRunning && timerMinutes < fullDuration) {
       timer = setInterval(() => {
         setTimerMinutes((prev) => {
-          if (prev + 1 >= hardCodedTime * 60) {
-            if (!goalAchievedRef.current) {
-              setIsTimerRunning(false);
-              goalAchievedRef.current = true;
-              setStreak((prevStreak) => prevStreak + 1);
-              faceRef.current?.stopDetection();
-            }
-            return hardCodedTime;
+          const next = prev + 1;
+
+          // Trigger streak once at milestone
+          if (next === milestoneTime && !goalAchievedRef.current) {
+            goalAchievedRef.current = true;
+            setStreak((prev) => prev + 1); // Parent handles localStorage
           }
-          return prev + 1;
+
+          // Stop at full duration
+          if (next >= fullDuration) {
+            setIsTimerRunning(false);
+            faceRef.current?.stopDetection();
+          }
+
+          return next;
         });
       }, 1000);
     }
+
     return () => clearInterval(timer);
   }, [isTimerRunning, hardCodedTime]);
 
@@ -94,6 +114,7 @@ const FocusTimer = ({
 
   const handleReset = () => {
     setTimerMinutes(0);
+    localStorage.removeItem("focusTimerMinutes");
     setIsTimerRunning(false);
     goalAchievedRef.current = false;
     faceRef.current?.stopDetection();
@@ -125,22 +146,20 @@ const FocusTimer = ({
 
           <div className="mb-4">
             <div className="text-sm font-medium mb-2">Daily Goal</div>
-            <div className="text-lg font-bold">
-              {Math.floor(timerMinutes / 60)} / {hardCodedTime} min
-            </div>
+            <div className="text-lg font-bold">{hardCodedTime * 6} min</div>
             <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
               <div
                 className="bg-purple-500 h-2 rounded-full"
                 style={{
                   width: `${Math.min(
-                    (timerMinutes / (hardCodedTime * 60)) * 100,
+                    (timerMinutes / (hardCodedTime * 60 * 6)) * 100,
                     100
                   )}%`,
                 }}
               ></div>
             </div>
             <div className="text-xs opacity-75 mt-1">
-              {Math.floor((timerMinutes / (hardCodedTime * 60)) * 100)}%
+              {Math.floor((timerMinutes / (hardCodedTime * 60 * 6)) * 100)}%
               complete
             </div>
           </div>
