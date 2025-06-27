@@ -81,7 +81,7 @@ export default function NeuroNavApp() {
     ? "bg-gray-800/50 border-gray-700 text-white"
     : "bg-white/80 border-gray-200";
 
-  const fontClass = dyslexicFont ? "font-mono" : "font-sans";
+  const fontClass = dyslexicFont ? "font-dyslexic" : "font-sans";
 
   // File handling
   const handleFileUpload = (event) => {
