@@ -45,30 +45,58 @@ export const Summarize = async (req, res) => {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    const contentToSummarize =
+    const contentToTransform =
       prompt && pdfData
         ? `Topic: ${prompt}\n\nContent:\n${pdfData}`
         : prompt
-        ? `Topic to summarize:\n${prompt}`
+        ? `Topic to transform:\n${prompt}`
         : `Content:\n${pdfData}`;
 
-    const result = await model.generateContent(`
+        //summary prompt
+    const summaryResponse = await model.generateContent(`
 You are an AI assistant that summarizes academic or informational text.
 
 Please summarize the following content into a clear and concise explanation. Break the content into short, easy-to-understand paragraphs. Each paragraph should be complete and self-contained.
 
 Avoid complex jargon and use a friendly tone. Don't include titles, lists, or markdown formatting.
 
-${contentToSummarize}
+${contentToTransform}
 
 Output format: Plain text only. Separate paragraphs with double newlines.
     `);
+      //key points prompt
+    const keyPointsResponse =
+      await model.generateContent(`You are an intelligent assistant that extracts key points from academic, informational, or instructional content.
 
-    const response = await result.response;
-    const text = response.text();
+Below is the content to process. It may come from a PDF document or a written user prompt.
+
+Please read the content carefully and generate a list of the most important **key points**. These should be:
+
+- Concise and complete sentences
+- Presented as bullet points (plain text only, no markdown)
+- Easy to understand
+- Accurate and relevant to the main topic
+
+Avoid copying full paragraphs. Focus on summarizing major ideas and facts.
+
+Here is the content:
+
+${contentToTransform}
+
+Return only the bullet points. No titles or extra explanation. Keep the format clean and readable.
+`);
+
+    const summary = (await summaryResponse.response).text();
+    
+    const rawKeyPoints = (await keyPointsResponse.response).text();
+
+    const keyPointsArray = rawKeyPoints
+      .split("\n") // split by newline
+      .map((point) => point.trim()) // remove extra spaces
+      .filter(Boolean); // remove empty lines
 
     // Split into individual paragraphs
-    const paragraphArray = text
+    const paragraphArray = summary
       .split(/\n\s*\n/) // double newlines = paragraph breaks
       .map((p) => p.trim()) // clean up whitespace
       .filter(Boolean); // remove empty strings
@@ -81,7 +109,8 @@ Output format: Plain text only. Separate paragraphs with double newlines.
     );
 
     return res.status(200).json({
-      paragraphs: textWithAudioArray,
+      textWithAudioArray,
+      keyPointsArray,
     });
   } catch (error) {
     console.error("Gemini API Error:", error.response?.data || error.message);
@@ -89,58 +118,3 @@ Output format: Plain text only. Separate paragraphs with double newlines.
   }
 };
 
-// try {
-//     const ttsResponse = await axios.post(
-//       MURF_API_URL,
-//       {
-//         text: paragraph,
-//         voiceId: "en-US-natalie", // Replace with valid Murf voice ID
-
-//       },
-//       {
-//         headers: {
-//           "api-key":process.env.murf_api_key ,
-//           "Content-Type": "application/json",
-//         },
-//       }
-//     );
-
-//     const { audioFile } = ttsResponse.data;
-
-//     audioResults.push({
-//       paragraph,
-//       audioFile,
-//     });
-
-//   } catch (ttsErr) {
-//     console.error("Murf TTS error:", ttsErr.response?.data || ttsErr.message);
-
-//     audioResults.push({
-//       paragraph,
-//       audioUrl: null,
-//       error: "TTS failed",
-//     });
-//   }
-
-// //  return res.json({
-//         script:scriptArray,
-//          audioUrl: voiceResponse.data.audioFile
-
-//       })
-
-//  const fullScript = scriptArray.map(line => `${line.speaker}: ${line.text}`).join(" ");
-//     const voiceResponse = await axios.post(
-//   'https://api.murf.ai/v1/speech/generate',
-//   {
-//     text: fullScript,
-//      style: "Angry",
-//      voiceId: "en-US-ken", // ✅ Valid voice_id from Murf's actual voice list
-//   },
-//   {
-//     headers: {
-//       "Content-Type": "application/json",
-//       Accept: "application/json",
-//       "api-key": process.env.MURF_API_KEY,
-//     },
-//   }
-// );
