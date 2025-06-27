@@ -1,27 +1,56 @@
-import express from "express";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import axios from "axios";
 import dotenv from "dotenv";
 
 dotenv.config();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const MURF_API_URL = "https://api.murf.ai/v1/speech/generate";
 
-const Summarize = async (req, res, next) => {
-    const prompt = req.body.prompt;
-const pdfData = req.body.pdfData;
+//text to speech function
+const textToSpeech = async (paragraph) => {
+  try {
+    const ttsResponse = await axios.post(
+      MURF_API_URL,
+      {
+        text: paragraph,
+        voiceId: "en-US-natalie", // Replace with valid Murf voice ID
+      },
+      {
+        headers: {
+          "api-key": process.env.murf_api_key,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const { audioFile } = ttsResponse.data;
+
+    return { paragraph, audioFile };
+  } catch (error) {
+    console.error("Murf TTS error:", error.response?.data || error.message);
+  }
+};
+
+export const Summarize = async (req, res) => {
+  const prompt = req.body.prompt;
+  const pdfData = req.body.pdfData;
 
   if (!prompt && !pdfData) {
-    return res.status(400).json({ error: "Prompt and/or PDF content is required." });
+    return res
+      .status(400)
+      .json({ error: "Prompt and/or PDF content is required." });
   }
 
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    const contentToSummarize = prompt && pdfData
-      ? `Topic: ${prompt}\n\nContent:\n${pdfData}`
-      : prompt
-      ? `Topic to summarize:\n${prompt}`
-      : `Content:\n${pdfData}`;
+    const contentToSummarize =
+      prompt && pdfData
+        ? `Topic: ${prompt}\n\nContent:\n${pdfData}`
+        : prompt
+        ? `Topic to summarize:\n${prompt}`
+        : `Content:\n${pdfData}`;
 
     const result = await model.generateContent(`
 You are an AI assistant that summarizes academic or informational text.
@@ -40,27 +69,25 @@ Output format: Plain text only. Separate paragraphs with double newlines.
 
     // Split into individual paragraphs
     const paragraphArray = text
-      .split(/\n\s*\n/)        // double newlines = paragraph breaks
-      .map(p => p.trim())      // clean up whitespace
-      .filter(Boolean);        // remove empty strings
+      .split(/\n\s*\n/) // double newlines = paragraph breaks
+      .map((p) => p.trim()) // clean up whitespace
+      .filter(Boolean); // remove empty strings
 
-    // Join paragraphs with double newlines to form one block of full text
-    const fullText = paragraphArray.join("\n\n");
+    //text to speech function call
+    const textWithAudioArray = await Promise.all(
+      paragraphArray.map(async (paragraph) => {
+        return await textToSpeech(paragraph);
+      })
+    );
 
     return res.status(200).json({
-      paragraphs: paragraphArray,  // array of strings
-      //fullText                     // single string, joined with "\n\n"
+      paragraphs: textWithAudioArray,
     });
-
   } catch (error) {
     console.error("Gemini API Error:", error.response?.data || error.message);
     return res.status(500).json({ error: "Failed to generate summary." });
   }
 };
-
-export default Summarize;
-
-
 
 // try {
 //     const ttsResponse = await axios.post(
@@ -68,7 +95,7 @@ export default Summarize;
 //       {
 //         text: paragraph,
 //         voiceId: "en-US-natalie", // Replace with valid Murf voice ID
-        
+
 //       },
 //       {
 //         headers: {
@@ -77,7 +104,7 @@ export default Summarize;
 //         },
 //       }
 //     );
-   
+
 //     const { audioFile } = ttsResponse.data;
 
 //     audioResults.push({
@@ -100,8 +127,6 @@ export default Summarize;
 //          audioUrl: voiceResponse.data.audioFile
 
 //       })
-
-
 
 //  const fullScript = scriptArray.map(line => `${line.speaker}: ${line.text}`).join(" ");
 //     const voiceResponse = await axios.post(

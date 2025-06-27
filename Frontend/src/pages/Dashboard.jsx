@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import FocusTimer from "../components/FocusTimer.jsx";
 import Timetable from "../components/TimeTable.jsx";
+import axios from "axios";
 
 // toggle for navbar
 function ToggleSwitch({
@@ -95,6 +96,13 @@ export default function NeuroNavApp() {
     }
   };
 
+  const playAudio = (audioUrl) => {
+    const audio = new Audio(audioUrl);
+    audio.play().catch((err) => {
+      console.error("Playback failed:", err);
+    });
+  };
+
   const handleFileRead = async (file) => {
     setIsProcessing(true);
     try {
@@ -126,16 +134,16 @@ export default function NeuroNavApp() {
 
   // Content processing and summarization
 
-  const createSummary = (text) => {
-    // Simple summarization logic - in a real app, you'd use AI
-    const words = text.split(" ");
-    if (words.length <= 20) return text;
+  // const createSummary = (text) => {
+  //   // Simple summarization logic - in a real app, you'd use AI
+  //   const words = text.split(" ");
+  //   if (words.length <= 20) return text;
 
-    // Take first and last parts of the text for summary
-    const firstPart = words.slice(0, 10).join(" ");
-    const lastPart = words.slice(-10).join(" ");
-    return `${firstPart}... ${lastPart}`;
-  };
+  //   // Take first and last parts of the text for summary
+  //   const firstPart = words.slice(0, 10).join(" ");
+  //   const lastPart = words.slice(-10).join(" ");
+  //   return `${firstPart}... ${lastPart}`;
+  // };
 
   const processcontent = async () => {
     if (!textInput.trim() && !uploadedFile) {
@@ -149,17 +157,16 @@ export default function NeuroNavApp() {
       if (uploadedFile) formData.append("file", uploadedFile);
       if (textInput.trim()) formData.append("prompt", textInput);
 
-      const response = await fetch("http://localhost:5000/api/data/summarize", {
-        method: "POST",
-        body: formData, // No headers!
-      });
+      const response = await axios.post(
+        `${import.meta.env.VITE_BASE_URL}/api/data/summarize`,
+        formData,
+        { withCredentials: true }
+      );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "API request failed");
-      }
+      console.log(response);
 
-      const { paragraphs } = await response.json();
+      const { paragraphs } = response.data;
+      console.log(paragraphs);
 
       const formattedParagraphs = paragraphs.map((summary, index) => ({
         id: index,
@@ -175,37 +182,6 @@ export default function NeuroNavApp() {
     } finally {
       setIsProcessing(false);
     }
-  };
-
-  // Text-to-Speech functionality
-  const speakText = (text, paragraphId) => {
-    // If the same paragraph is playing, stop it
-    if (currentlyPlaying === paragraphId) {
-      speechSynthesis.cancel();
-      setCurrentlyPlaying(null);
-      return;
-    }
-    // If another paragraph is playing, stop it first
-    if (currentlyPlaying !== null) {
-      speechSynthesis.cancel();
-      setCurrentlyPlaying(null);
-    }
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = speed;
-    utterance.volume = volume / 100;
-    // ... set voice as before
-
-    utterance.onstart = () => setCurrentlyPlaying(paragraphId);
-    utterance.onend = () => setCurrentlyPlaying(null);
-    utterance.onerror = () => setCurrentlyPlaying(null);
-
-    speechSynthesis.speak(utterance);
-  };
-
-  const stopSpeech = () => {
-    speechSynthesis.cancel();
-    setCurrentlyPlaying(null);
   };
 
   return (
@@ -363,8 +339,6 @@ export default function NeuroNavApp() {
           </div>
 
           {/* Summarized Content Display */}
-
-          {/* Summarized Content Display */}
           {summarizedParagraphs.length > 0 && (
             <div
               className={`${cardClasses} backdrop-blur-sm rounded-2xl p-6 border shadow-xl`}
@@ -377,25 +351,22 @@ export default function NeuroNavApp() {
               </div>
               {/* All summaries in one box */}
               <div>
-                {summarizedParagraphs.map((paragraph) => (
-                  <div key={paragraph.id} className="mb-4">
+                {console.log(summarizedParagraphs)}
+                {summarizedParagraphs.map((item, index) => (
+                  <div key={item.id} className="mb-4">
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-lg font-semibold text-purple-600">
-                        {paragraph.title}
+                        {item.summary.paragraph}
                       </h3>
                       <button
-                        onClick={() =>
-                          speakText(paragraph.summary, paragraph.id)
-                        }
+                        onClick={() => playAudio(item.summary.audioFile)}
                         className="bg-blue-500 text-white px-2 py-1 rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-1 text-xs"
                       >
                         <PlayCircle className="w-3 h-3" />
                         <span>Play</span>
                       </button>
                     </div>
-                    <p className="text-sm leading-relaxed">
-                      {paragraph.summary}
-                    </p>
+                    <p className="text-sm leading-relaxed">{item.paragraph}</p>
                   </div>
                 ))}
               </div>
