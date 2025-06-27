@@ -18,6 +18,6 @@ router.route("/logout").post(verifyJWT, logout);
 
 router.route("/survey").post(verifyJWT, sendSurveyData);
 
-router.route("/survey").get(verifyJWT, getSurveyData);
+router.route("/getSurvey").get(verifyJWT, getSurveyData);
 
 export default router;

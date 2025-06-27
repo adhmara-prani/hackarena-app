@@ -37,7 +37,7 @@ const FocusTimer = ({
     const fetchSurveyData = async () => {
       try {
         const res = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/api/users/survey`,
+          `${import.meta.env.VITE_BASE_URL}/api/users/getSurvey`,
           {
             withCredentials: true,
           }
